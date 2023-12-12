@@ -1,66 +1,52 @@
-import 'package:app_funcionarios/db_helper.dart';
-
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget{
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State createState() => _HomeScreenState();
 }
 
-//Mostrar todos
 class _HomeScreenState extends State<HomeScreen> {
-  List<Map<String, dynamic>> _allData = [];
+  List<Map<String, dynamic>> _allData = [    {'id': 1, 'title': 'Item 1', 'desc': 'Description 1'},    {'id': 2, 'title': 'Item 2', 'desc': 'Description 2'},    {'id': 3, 'title': 'Item 3', 'desc': 'Description 3'},  ];
 
-  bool _isLoading = true;
+  bool _isLoading = false;
 
   void _refreshData() async {
-    final data = await SQLHelper.getAllData();
     setState(() {
-      _allData = data;
-      _isLoading = false;
+      _isLoading = true;
     });
 
+    // Simulating API call or data fetching
+
+    await Future.delayed(Duration(seconds: 2));
+
+    setState(() {
+      _isLoading = false;
+    });
   }
-  
+
   @override
-  void initState(){
+  void initState() {
     super.initState();
     _refreshData();
   }
 
-
-//Adicionar
- Future<void> _addData() async {
-  await SQLHelper.createData(_titleController.text, _descController.text);
-  _refreshData();
- } 
-
-//Atualizar
- Future<void> _updateData(int id) async {
-  await SQLHelper.updateData(id, _titleController.text, _descController.text);
-  _refreshData();
- }
-
-//Deletar
-void _deleteData(int id) async {
-  await SQLHelper.deleteData(id);
-  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-    backgroundColor: Colors.redAccent,
-    content: Text("Deletado!"),
-  ));
-  _refreshData();
-}
-
+  void _deleteData(int id) {
+    setState(() {
+      _allData.removeWhere((element) => element['id'] == id);
+    });
+  }
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
 
   void showBottomSheet(int? id) async {
     if (id != null) {
-      final existingData =
-       _allData.firstWhere((element) => element['id'] == id);
+      final existingData = _allData.firstWhere((element) => element['id'] == id);
       _titleController.text = existingData['title'];
       _descController.text = existingData['desc'];
+    } else {
+      _titleController.text = '';
+      _descController.text = '';
     }
 
     showModalBottomSheet(
@@ -69,28 +55,19 @@ void _deleteData(int id) async {
       context: context,
       builder: (_) => Container(
         padding: EdgeInsets.only(
-          top:30,
-          left:15,
-          right:MediaQuery.of(context).viewInsets.bottom + 50,
+          top: 30,
+          left: 15,
+          right: MediaQuery.of(context).viewInsets.bottom + 50,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             TextField(
-            controller: _titleController,
-            decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: "Nome do funcionário",
-            ),
-            ),
-            SizedBox(height: 5),
-            TextField(
-              controller: _descController,
-              maxLines: 4,
+              controller: _titleController,
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
-                hintText: "Email do funcionário",
+                hintText: "Title",
               ),
             ),
             SizedBox(height: 5),
@@ -99,33 +76,40 @@ void _deleteData(int id) async {
               maxLines: 4,
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
-                hintText: "Cargo do funcionário",
+                hintText: "Description",
               ),
             ),
             SizedBox(height: 20),
-
             Center(
               child: ElevatedButton(
-                onPressed: () async{
-                  if(id == null){
-                    await _addData();
-                  }
-                  if(id != null){
-                    await _updateData(id);
-                  }
+                onPressed: () {
+                  setState(() {
+                    if (id == null) {
+                      final newItem = {
+                        'id': _allData.length + 1,
+                        'title': _titleController.text,
+                        'desc': _descController.text,
+                      };
+                      _allData.add(newItem);
+                    } else {
+                      final existingItem =
+                          _allData.firstWhere((element) => element['id'] == id);
+                      existingItem['title'] = _titleController.text;
+                      existingItem['desc'] = _descController.text;
+                    }
+                  });
 
                   _titleController.text = "";
                   _descController.text = "";
 
-                  Navigator.of(context).pop();
-                  print("Data Added");
+                  Navigator.pop(context);
                 },
-              child: Padding(
-                padding: EdgeInsets.all(18),
-                child: Text(
-                  id == null ? "Add Data" : "Update",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-
+                child: Padding(
+                  padding: EdgeInsets.all(18),
+                  child: Text(
+                    id == null ? "Add Funcionário" : "Atualizar",
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                   ),
                 ),
               ),
@@ -137,62 +121,76 @@ void _deleteData(int id) async {
   }
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFECEAF4),
+      backgroundColor: Color(0xF2A1AA1),
       appBar: AppBar(
-        title: Text("CRUD Operations"),
+        title: Text("LarissaH & JadiseL"),
       ),
-      body: _isLoading 
-      ? Center(
-        child: CircularProgressIndicator(),
-        )
-        : ListView.builder(
-          itemCount: _allData.length,
-          itemBuilder: (context, index) => Card(
-            margin: EdgeInsets.all(15),
-            child: ListTile(
-              title: Padding(
-                padding: EdgeInsets.symmetric(vertical: 5),
-                child: Text(
-                  _allData[index]['title'],
-                  style: TextStyle(
-                    fontSize: 20,
-                  ),
-                ),
-              ),
-              subtitle: Text(_allData[index]['desc']),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(onPressed: () {
-                    showBottomSheet(_allData[index]['id']);
-                  },
-                  icon: Icon(
-                    Icons.edit,
-                    color: Colors.deepPurple,
+      body: _isLoading
+          ? Center(
+              child: CircularProgressIndicator(),
+            )
+          : ListView.builder(
+              itemCount: _allData.length,
+              itemBuilder: (context, index) => Card(
+                margin: EdgeInsets.all(15),
+                child: ListTile(
+                  title: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 5),
+                    child: Text(
+                      _allData[index]['title'],
+                      style: TextStyle(
+                        fontSize: 20,
+                      ),
                     ),
                   ),
-                   IconButton(onPressed: () {
-                    _deleteData(_allData[index]['id']);
-                   },
-                  icon: Icon(
-                    Icons.delete,
-                    color: Color.fromARGB(255, 255, 114, 114),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ), 
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => showBottomSheet(null),
-          child: Icon(Icons.add),
-        ),
-      );
-  }
+                  subtitle: Text(_allData[index]['desc']),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          showBottomSheet(_allData[index]['id']);
+                        },
+                        icon: Icon(
+                          Icons.edit,
+                          color: Colors.deepPurple,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          _deleteData(_allData[index]['id']);
+                        },
+                        icon: Icon(
+                          Icons.delete,
+                          color: Color.fromARGB
+                          (255, 0, 0,0 ),
+),
+),
+],
+),
+),
+),
+),
+floatingActionButton: FloatingActionButton(
+onPressed: () {
+showBottomSheet(null);
+},
+child: Icon(Icons.add),
+),
+);
 }
+}
+
+void main() {
+runApp(MaterialApp(
+debugShowCheckedModeBanner: false,
+home: HomeScreen(),
+));
+}
+
+
 
 
 
